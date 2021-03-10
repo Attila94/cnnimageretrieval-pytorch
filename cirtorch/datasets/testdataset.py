@@ -1,13 +1,13 @@
 import os
 import pickle
 
-DATASETS = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k']
+DATASETS = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
 
 def configdataset(dataset, dir_main):
 
     dataset = dataset.lower()
 
-    if dataset not in DATASETS:    
+    if dataset not in DATASETS:
         raise ValueError('Unknown dataset: {}!'.format(dataset))
 
     # loading imlist, qimlist, and gnd, in cfg as a dict

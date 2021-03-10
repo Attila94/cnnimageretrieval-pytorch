@@ -12,6 +12,9 @@ from cirtorch.layers.normalization import L2N, PowerLaw
 from cirtorch.datasets.genericdataset import ImagesFromList
 from cirtorch.utils.general import get_data_root
 
+from cirtorch.networks.vgg import vgg16
+from cirtorch.networks.resnet import resnet101
+
 # for some models, we have imported features (convolutions) from caffe because the image retrieval performance is higher for them
 FEATURES = {
     'vgg16'         : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/imagenet/imagenet-caffe-vgg16-features-d369c8e.pth',
@@ -69,11 +72,13 @@ OUTPUT_DIM = {
     'vgg11'                 :  512,
     'vgg13'                 :  512,
     'vgg16'                 :  512,
+    'w_vgg16'               :  512,
     'vgg19'                 :  512,
     'resnet18'              :  512,
     'resnet34'              :  512,
     'resnet50'              : 2048,
     'resnet101'             : 2048,
+    'w_resnet101'           : 2048,
     'resnet152'             : 2048,
     'densenet121'           : 1024,
     'densenet169'           : 1664,
@@ -85,7 +90,7 @@ OUTPUT_DIM = {
 
 
 class ImageRetrievalNet(nn.Module):
-    
+
     def __init__(self, features, lwhiten, pool, whiten, meta):
         super(ImageRetrievalNet, self).__init__()
         self.features = nn.Sequential(*features)
@@ -94,7 +99,7 @@ class ImageRetrievalNet(nn.Module):
         self.whiten = whiten
         self.norm = L2N()
         self.meta = meta
-    
+
     def forward(self, x):
         # x -> features
         o = self.features(x)
@@ -155,15 +160,16 @@ def init_network(params):
     dim = OUTPUT_DIM[architecture]
 
     # loading network from torchvision
-    if pretrained:
-        if architecture not in FEATURES:
-            # initialize with network pretrained on imagenet in pytorch
-            net_in = getattr(torchvision.models, architecture)(pretrained=True)
+    if architecture not in FEATURES:
+        if architecture == 'w_vgg16':
+            net_in = vgg16(invariant='W', pretrained=pretrained)
+        elif architecture == 'w_resnet101':
+            net_in = resnet101(invariant='W', pretrained=pretrained)
         else:
-            # initialize with random weights, later on we will fill features with custom pretrained network
-            net_in = getattr(torchvision.models, architecture)(pretrained=False)
+            # initialize with network pretrained on imagenet in pytorch
+            net_in = getattr(torchvision.models, architecture)(pretrained=pretrained)
     else:
-        # initialize with random weights
+        # initialize with random weights, later on we will fill features with custom pretrained network
         net_in = getattr(torchvision.models, architecture)(pretrained=False)
 
     # initialize features
@@ -173,7 +179,9 @@ def init_network(params):
         features = list(net_in.features.children())[:-1]
     elif architecture.startswith('vgg'):
         features = list(net_in.features.children())[:-1]
-    elif architecture.startswith('resnet'):
+    elif architecture == 'w_vgg16':
+        features = [net_in.ciconv] + list(net_in.features.children())[:-1]
+    elif architecture.startswith('resnet') or achitecture == 'w_resnet101':
         features = list(net_in.children())[:-2]
     elif architecture.startswith('densenet'):
         features = list(net_in.features.children())
@@ -201,13 +209,13 @@ def init_network(params):
 
     else:
         lwhiten = None
-    
+
     # initialize pooling
     if pooling == 'gemmp':
         pool = POOLING[pooling](mp=dim)
     else:
         pool = POOLING[pooling]()
-    
+
     # initialize regional pooling
     if regional:
         rpool = pool
@@ -252,12 +260,12 @@ def init_network(params):
 
     # create meta information to be stored in the network
     meta = {
-        'architecture' : architecture, 
-        'local_whitening' : local_whitening, 
-        'pooling' : pooling, 
-        'regional' : regional, 
-        'whitening' : whitening, 
-        'mean' : mean, 
+        'architecture' : architecture,
+        'local_whitening' : local_whitening,
+        'pooling' : pooling,
+        'regional' : regional,
+        'whitening' : whitening,
+        'mean' : mean,
         'std' : std,
         'outputdim' : dim,
     }
@@ -307,16 +315,16 @@ def extract_ss(net, input):
     return net(input).cpu().data.squeeze()
 
 def extract_ms(net, input, ms, msp):
-    
+
     v = torch.zeros(net.meta['outputdim'])
-    
-    for s in ms: 
+
+    for s in ms:
         if s == 1:
             input_t = input.clone()
-        else:    
+        else:
             input_t = nn.functional.interpolate(input, scale_factor=s, mode='bilinear', align_corners=False)
         v += net(input_t).pow(msp).cpu().data.squeeze()
-        
+
     v /= len(ms)
     v = v.pow(1./msp)
     v /= v.norm()

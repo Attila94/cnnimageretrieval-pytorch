@@ -3,7 +3,6 @@ import os
 def download_test(data_dir):
     """
     DOWNLOAD_TEST Checks, and, if required, downloads the necessary datasets for the testing.
-      
         download_test(DATA_ROOT) checks if the data necessary for running the example script exist.
         If not it downloads it in the folder structure:
             DATA_ROOT/test/oxford5k/  : folder with Oxford images and ground truth file
@@ -15,14 +14,14 @@ def download_test(data_dir):
     # Create data folder if it does not exist
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
-    
+
     # Create datasets folder if it does not exist
     datasets_dir = os.path.join(data_dir, 'test')
     if not os.path.isdir(datasets_dir):
         os.mkdir(datasets_dir)
 
     # Download datasets folders test/DATASETNAME/
-    datasets = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k']
+    datasets = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
     for di in range(len(datasets)):
         dataset = datasets[di]
 
@@ -38,6 +37,9 @@ def download_test(data_dir):
         elif dataset == 'rparis6k':
             src_dir = 'http://www.robots.ox.ac.uk/~vgg/data/parisbuildings'
             dl_files = ['paris_1.tgz', 'paris_2.tgz']
+        elif dataset == '247tokyo1k':
+            src_dir = 'http://www.ok.ctrl.titech.ac.jp/~torii/project/247/download'
+            dl_files = ['247query_v3.zip']
         else:
             raise ValueError('Unknown dataset: {}!'.format(dataset))
 
@@ -45,7 +47,7 @@ def download_test(data_dir):
         if not os.path.isdir(dst_dir):
 
             # for oxford and paris download images
-            if dataset == 'oxford5k' or dataset == 'paris6k':
+            if dataset == 'oxford5k' or dataset == 'paris6k' or dataset == "247tokyo1k":
                 print('>> Dataset {} directory does not exist. Creating: {}'.format(dataset, dst_dir))
                 os.makedirs(dst_dir)
                 for dli in range(len(dl_files)):
@@ -59,7 +61,10 @@ def download_test(data_dir):
                     dst_dir_tmp = os.path.join(dst_dir, 'tmp')
                     os.system('mkdir {}'.format(dst_dir_tmp))
                     # extract in tmp folder
-                    os.system('tar -zxf {} -C {}'.format(dst_file, dst_dir_tmp))
+                    if dl_file.endswith(".zip"):
+                        os.system('unzip {} -d {}'.format(dst_file, dst_dir_tmp))
+                    else:
+                        os.system('tar -zxf {} -C {}'.format(dst_file, dst_dir_tmp))
                     # remove all (possible) subfolders by moving only files in dst_dir
                     os.system('find {} -type f -exec mv -i {{}} {} \\;'.format(dst_dir_tmp, dst_dir))
                     # remove tmp folder
@@ -72,12 +77,19 @@ def download_test(data_dir):
                 print('>> Dataset {} directory does not exist. Creating: {}'.format(dataset, dst_dir))
                 dataset_old = dataset[1:]
                 dst_dir_old = os.path.join(datasets_dir, dataset_old, 'jpg')
-                os.mkdir(os.path.join(datasets_dir, dataset))
-                os.system('ln -s {} {}'.format(dst_dir_old, dst_dir))
-                print('>> Created symbolic link from {} jpg to {} jpg'.format(dataset_old, dataset))
+                if not os.path.exists(os.path.join(datasets_dir, dataset)):
+                    os.mkdir(os.path.join(datasets_dir, dataset))
+                if not os.path.exists(dst_dir):
+                    # Broken link
+                    if os.path.lexists(dst_dir):
+                        os.remove(dst_dir)
+                    os.symlink(dst_dir_old, dst_dir)
+                    print('>> Created symbolic link from {} jpg to {} jpg'.format(dataset_old, dataset))
 
-
-        gnd_src_dir = os.path.join('http://cmp.felk.cvut.cz/cnnimageretrieval/data', 'test', dataset)
+        if dataset == "247tokyo1k":
+            gnd_src_dir = "http://cmp.felk.cvut.cz/daynightretrieval/download/data"
+        else:
+            gnd_src_dir = os.path.join('http://cmp.felk.cvut.cz/cnnimageretrieval/data', 'test', dataset)
         gnd_dst_dir = os.path.join(datasets_dir, dataset)
         gnd_dl_file = 'gnd_{}.pkl'.format(dataset)
         gnd_src_file = os.path.join(gnd_src_dir, gnd_dl_file)
@@ -90,7 +102,6 @@ def download_test(data_dir):
 def download_train(data_dir):
     """
     DOWNLOAD_TRAIN Checks, and, if required, downloads the necessary datasets for the training.
-      
         download_train(DATA_ROOT) checks if the data necessary for running the example script exist.
         If not it downloads it in the folder structure:
             DATA_ROOT/train/retrieval-SfM-120k/  : folder with rsfm120k images and db files
@@ -100,7 +111,7 @@ def download_train(data_dir):
     # Create data folder if it does not exist
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
-    
+
     # Create datasets folder if it does not exist
     datasets_dir = os.path.join(data_dir, 'train')
     if not os.path.isdir(datasets_dir):
@@ -122,12 +133,16 @@ def download_train(data_dir):
         print('>> Extracted, deleting {}...'.format(dst_file))
         os.system('rm {}'.format(dst_file))
 
-    # Create symlink for train/retrieval-SfM-30k/ 
+    # Create symlink for train/retrieval-SfM-30k/
     dst_dir_old = os.path.join(datasets_dir, 'retrieval-SfM-120k', 'ims')
     dst_dir = os.path.join(datasets_dir, 'retrieval-SfM-30k', 'ims')
     if not os.path.isdir(dst_dir):
-        os.makedirs(os.path.join(datasets_dir, 'retrieval-SfM-30k'))
-        os.system('ln -s {} {}'.format(dst_dir_old, dst_dir))
+        if not os.path.isdir(datasets_dir):
+            os.makedirs(os.path.join(datasets_dir, 'retrieval-SfM-30k'))
+        # Broken link
+        if os.path.lexists(dst_dir):
+            os.remove(dst_dir)
+        os.symlink(dst_dir_old, dst_dir)
         print('>> Created symbolic link from retrieval-SfM-120k/ims to retrieval-SfM-30k/ims')
 
     # Download db files
