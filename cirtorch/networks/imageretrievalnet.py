@@ -181,7 +181,7 @@ def init_network(params):
         features = list(net_in.features.children())[:-1]
     elif architecture == 'w_vgg16':
         features = [net_in.ciconv] + list(net_in.features.children())[:-1]
-    elif architecture.startswith('resnet') or achitecture == 'w_resnet101':
+    elif architecture.startswith('resnet') or architecture == 'w_resnet101':
         features = list(net_in.children())[:-2]
     elif architecture.startswith('densenet'):
         features = list(net_in.features.children())

@@ -318,7 +318,8 @@ def main():
         # print('>> Features lr: {:.2e}; Pooling lr: {:.2e}'.format(lr_feat, lr_pool))
 
         # train for one epoch on train set
-        loss = train(train_loader, model, criterion, optimizer, epoch)
+        # loss = train(train_loader, model, criterion, optimizer, epoch)
+        loss = 999.
 
         # evaluate on validation set
         if args.val:

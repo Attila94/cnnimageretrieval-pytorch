@@ -2,7 +2,6 @@ import argparse
 import os
 import time
 import pickle
-import pdb
 
 import numpy as np
 
@@ -30,7 +29,7 @@ PRETRAINED = {
     'gl18-tl-resnet152-gem-w'           : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/gl18/gl18-tl-resnet152-gem-w-21278d5.pth',
 }
 
-datasets_names = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k']
+datasets_names = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
 whitening_names = ['retrieval-SfM-30k', 'retrieval-SfM-120k']
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Image Retrieval Testing')
@@ -38,24 +37,24 @@ parser = argparse.ArgumentParser(description='PyTorch CNN Image Retrieval Testin
 # network
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('--network-path', '-npath', metavar='NETWORK',
-                    help="pretrained network or network path (destination where network is saved)")
+                   help="pretrained network or network path (destination where network is saved)")
 group.add_argument('--network-offtheshelf', '-noff', metavar='NETWORK',
-                    help="off-the-shelf network, in the format 'ARCHITECTURE-POOLING' or 'ARCHITECTURE-POOLING-{reg-lwhiten-whiten}'," + 
+                   help="off-the-shelf network, in the format 'ARCHITECTURE-POOLING' or 'ARCHITECTURE-POOLING-{reg-lwhiten-whiten}'," +
                         " examples: 'resnet101-gem' | 'resnet101-gem-reg' | 'resnet101-gem-whiten' | 'resnet101-gem-lwhiten' | 'resnet101-gem-reg-whiten'")
 
 # test options
-parser.add_argument('--datasets', '-d', metavar='DATASETS', default='oxford5k,paris6k',
-                    help="comma separated list of test datasets: " + 
-                        " | ".join(datasets_names) + 
+parser.add_argument('--datasets', '-d', metavar='DATASETS', default='oxford5k,paris6k,247tokyo1k',
+                    help="comma separated list of test datasets: " +
+                        " | ".join(datasets_names) +
                         " (default: 'oxford5k,paris6k')")
 parser.add_argument('--image-size', '-imsize', default=1024, type=int, metavar='N',
                     help="maximum size of longer image side used for testing (default: 1024)")
-parser.add_argument('--multiscale', '-ms', metavar='MULTISCALE', default='[1]', 
-                    help="use multiscale vectors for testing, " + 
+parser.add_argument('--multiscale', '-ms', metavar='MULTISCALE', default='[1]',
+                    help="use multiscale vectors for testing, " +
                     " examples: '[1]' | '[1, 1/2**(1/2), 1/2]' | '[1, 2**(1/2), 1/2**(1/2)]' (default: '[1]')")
 parser.add_argument('--whitening', '-w', metavar='WHITENING', default=None, choices=whitening_names,
-                    help="dataset used to learn whitening for testing: " + 
-                        " | ".join(whitening_names) + 
+                    help="dataset used to learn whitening for testing: " +
+                        " | ".join(whitening_names) +
                         " (default: None)")
 
 # GPU ID
@@ -105,17 +104,17 @@ def main():
         # load network
         net = init_network(net_params)
         net.load_state_dict(state['state_dict'])
-        
+
         # if whitening is precomputed
         if 'Lw' in state['meta']:
             net.meta['Lw'] = state['meta']['Lw']
-        
+
         print(">>>> loaded network: ")
         print(net.meta_repr())
 
     # loading offtheshelf network
     elif args.network_offtheshelf is not None:
-        
+
         # parse off-the-shelf parameters
         offtheshelf = args.network_offtheshelf.split('-')
         net_params = {}
@@ -134,10 +133,10 @@ def main():
 
     # setting up the multi-scale parameters
     ms = list(eval(args.multiscale))
-    if len(ms)>1 and net.meta['pooling'] == 'gem' and not net.meta['regional'] and not net.meta['whitening']:
+    if len(ms) > 1 and net.meta['pooling'] == 'gem' and not net.meta['regional'] and not net.meta['whitening']:
         msp = net.pool.p.item()
         print(">> Set-up multiscale:")
-        print(">>>> ms: {}".format(ms))            
+        print(">>>> ms: {}".format(ms))
         print(">>>> msp: {}".format(msp))
     else:
         msp = 1
@@ -147,6 +146,7 @@ def main():
     net.eval()
 
     # set up the transform
+    print(net.meta['mean'], net.meta['std'])
     normalize = transforms.Normalize(
         mean=net.meta['mean'],
         std=net.meta['std']
@@ -161,10 +161,10 @@ def main():
         start = time.time()
 
         if 'Lw' in net.meta and args.whitening in net.meta['Lw']:
-            
+
             print('>> {}: Whitening is precomputed, loading it...'.format(args.whitening))
-            
-            if len(ms)>1:
+
+            if len(ms) > 1:
                 Lw = net.meta['Lw'][args.whitening]['ms']
             else:
                 Lw = net.meta['Lw'][args.whitening]['ss']
@@ -187,7 +187,7 @@ def main():
 
             else:
                 print('>> {}: Learning whitening...'.format(args.whitening))
-                
+
                 # loading db
                 db_root = os.path.join(get_data_root(), 'train', args.whitening)
                 ims_root = os.path.join(db_root, 'ims')
@@ -199,8 +199,8 @@ def main():
                 # extract whitening vectors
                 print('>> {}: Extracting...'.format(args.whitening))
                 wvecs = extract_vectors(net, images, args.image_size, transform, ms=ms, msp=msp)
-                
-                # learning whitening 
+
+                # learning whitening
                 print('>> {}: Learning...'.format(args.whitening))
                 wvecs = wvecs.numpy()
                 m, P = whitenlearn(wvecs, db['qidxs'], db['pidxs'])
@@ -218,7 +218,7 @@ def main():
 
     # evaluate on test datasets
     datasets = args.datasets.split(',')
-    for dataset in datasets: 
+    for dataset in datasets:
         start = time.time()
 
         print('>> {}: Extracting...'.format(dataset))
@@ -231,13 +231,12 @@ def main():
             bbxs = [tuple(cfg['gnd'][i]['bbx']) for i in range(cfg['nq'])]
         except:
             bbxs = None  # for holidaysmanrot and copydays
-        
+
         # extract database and query vectors
         print('>> {}: database images...'.format(dataset))
         vecs = extract_vectors(net, images, args.image_size, transform, ms=ms, msp=msp)
         print('>> {}: query images...'.format(dataset))
         qvecs = extract_vectors(net, qimages, args.image_size, transform, bbxs=bbxs, ms=ms, msp=msp)
-        
         print('>> {}: Evaluating...'.format(dataset))
 
         # convert to numpy
@@ -248,17 +247,17 @@ def main():
         scores = np.dot(vecs.T, qvecs)
         ranks = np.argsort(-scores, axis=0)
         compute_map_and_print(dataset, ranks, cfg['gnd'])
-    
+
         if Lw is not None:
             # whiten the vectors
-            vecs_lw  = whitenapply(vecs, Lw['m'], Lw['P'])
+            vecs_lw = whitenapply(vecs, Lw['m'], Lw['P'])
             qvecs_lw = whitenapply(qvecs, Lw['m'], Lw['P'])
 
             # search, rank, and print
             scores = np.dot(vecs_lw.T, qvecs_lw)
             ranks = np.argsort(-scores, axis=0)
             compute_map_and_print(dataset + ' + whiten', ranks, cfg['gnd'])
-        
+
         print('>> {}: elapsed time: {}'.format(dataset, htime(time.time()-start)))
 
 

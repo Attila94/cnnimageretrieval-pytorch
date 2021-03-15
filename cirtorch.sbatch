@@ -12,4 +12,4 @@
 module use /opt/insy/modulefiles
 module load cuda/10.0 cudnn/10.0-7.4.2.24
 
-python3 -m cirtorch.examples.train 'output_w-vgg16' --gpu-id '0' --training-dataset 'retrieval-SfM-120k' --test-datasets 'roxford5k,rparis6k,247tokyo1k' --arch 'w_vgg16' --pool 'gem' --loss 'contrastive' --loss-margin 0.75 --optimizer 'adam' --lr 1e-6 --wd 5e-4 --neg-num 5 --query-size=2000 --pool-size=20000 --batch-size 5 --image-size 362 --mean '0,0,0' --std '1,1,1'
+python3 -m cirtorch.examples.train 'output_w-resnet101' --gpu-id '0' --training-dataset 'retrieval-SfM-120k' --test-datasets 'roxford5k,rparis6k,247tokyo1k' --arch 'w_resnet101' --pool 'gem' --loss 'contrastive' --loss-margin 0.85 --optimizer 'adam' --lr 5e-7 --wd 5e-4 --neg-num 5 --query-size=2000 --pool-size=20000 --batch-size 5 --image-size 362 --mean '0,0,0' --std '1,1,1'
