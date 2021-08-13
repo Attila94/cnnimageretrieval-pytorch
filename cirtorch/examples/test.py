@@ -31,7 +31,7 @@ PRETRAINED = {
     'gl18-tl-resnet152-gem-w'           : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/gl18/gl18-tl-resnet152-gem-w-21278d5.pth',
 }
 
-datasets_names = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k', 'gp_dl_nr', 'gp_dr_nr']
+datasets_names = ['247tokyo1k', 'gp_dl_nr', 'gp_dr_nr']
 whitening_names = ['retrieval-SfM-30k', 'retrieval-SfM-120k']
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Image Retrieval Testing')
@@ -74,8 +74,8 @@ def main():
 
     # check if test dataset are downloaded
     # and download if they are not
-    download_train(get_data_root())
-    download_test(get_data_root())
+    #download_train(get_data_root())
+    download_test(get_data_root(),datasets_names)
 
     # setting up the visible GPU
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id

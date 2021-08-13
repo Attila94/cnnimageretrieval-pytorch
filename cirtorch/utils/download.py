@@ -1,6 +1,6 @@
 import os
 
-def download_test(data_dir):
+def download_test(data_dir,datasets):
     """
     DOWNLOAD_TEST Checks, and, if required, downloads the necessary datasets for the testing.
         download_test(DATA_ROOT) checks if the data necessary for running the example script exist.
@@ -21,7 +21,7 @@ def download_test(data_dir):
         os.mkdir(datasets_dir)
 
     # Download datasets folders test/DATASETNAME/
-    datasets = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
+    #datasets = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
     for di in range(len(datasets)):
         dataset = datasets[di]
 
