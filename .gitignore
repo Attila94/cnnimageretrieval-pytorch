@@ -2,3 +2,4 @@
 /data/*
 *.out
 /output*/
+*.ipynb_checkpoints*

@@ -40,6 +40,8 @@ def download_test(data_dir):
         elif dataset == '247tokyo1k':
             src_dir = 'http://www.ok.ctrl.titech.ac.jp/~torii/project/247/download'
             dl_files = ['247query_v3.zip']
+        elif dataset in ['gp_dl_nr','gp_dr_nr']:
+            pass
         else:
             raise ValueError('Unknown dataset: {}!'.format(dataset))
 

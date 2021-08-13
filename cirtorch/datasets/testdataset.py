@@ -1,7 +1,7 @@
 import os
 import pickle
 
-DATASETS = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
+DATASETS = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k', 'gp_dl_nr', 'gp_dr_nr']
 
 def configdataset(dataset, dir_main):
 
@@ -16,10 +16,16 @@ def configdataset(dataset, dir_main):
         cfg = pickle.load(f)
     cfg['gnd_fname'] = gnd_fname
 
-    cfg['ext'] = '.jpg'
-    cfg['qext'] = '.jpg'
-    cfg['dir_data'] = os.path.join(dir_main, dataset)
-    cfg['dir_images'] = os.path.join(cfg['dir_data'], 'jpg')
+    if 'gp_' not in dataset:
+        cfg['dir_data'] = os.path.join(dir_main, dataset)
+        cfg['dir_images'] = os.path.join(cfg['dir_data'], 'jpg')
+        cfg['ext'] = '.jpg'
+        cfg['qext'] = '.jpg'
+    else:
+        cfg['ext'] = ''
+        cfg['qext'] = ''
+        cfg['dir_data'] = os.path.join(dir_main, dataset)
+        cfg['dir_images'] = 'data/test/GardensPointWalking/'
 
     cfg['n'] = len(cfg['imlist'])
     cfg['nq'] = len(cfg['qimlist'])

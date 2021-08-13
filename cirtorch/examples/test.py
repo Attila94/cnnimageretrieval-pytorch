@@ -17,6 +17,8 @@ from cirtorch.utils.whiten import whitenlearn, whitenapply
 from cirtorch.utils.evaluate import compute_map_and_print
 from cirtorch.utils.general import get_data_root, htime
 
+from os.path import exists, join
+
 PRETRAINED = {
     'retrievalSfM120k-vgg16-gem'        : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/retrieval-SfM-120k/retrievalSfM120k-vgg16-gem-b4dcdc6.pth',
     'retrievalSfM120k-resnet101-gem'    : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/retrieval-SfM-120k/retrievalSfM120k-resnet101-gem-b80fb85.pth',
@@ -29,7 +31,7 @@ PRETRAINED = {
     'gl18-tl-resnet152-gem-w'           : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/networks/gl18/gl18-tl-resnet152-gem-w-21278d5.pth',
 }
 
-datasets_names = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k']
+datasets_names = ['oxford5k', 'paris6k', 'roxford5k', 'rparis6k', '247tokyo1k', 'gp_dl_nr', 'gp_dr_nr']
 whitening_names = ['retrieval-SfM-30k', 'retrieval-SfM-120k']
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Image Retrieval Testing')
@@ -60,6 +62,7 @@ parser.add_argument('--whitening', '-w', metavar='WHITENING', default=None, choi
 # GPU ID
 parser.add_argument('--gpu-id', '-g', default='0', metavar='N',
                     help="gpu id used for testing (default: '0')")
+parser.add_argument('--ftSavePath', '-s', default='data/test/', help="full save path")
 
 def main():
     args = parser.parse_args()
@@ -236,7 +239,10 @@ def main():
         print('>> {}: database images...'.format(dataset))
         vecs = extract_vectors(net, images, args.image_size, transform, ms=ms, msp=msp)
         print('>> {}: query images...'.format(dataset))
-        qvecs = extract_vectors(net, qimages, args.image_size, transform, bbxs=bbxs, ms=ms, msp=msp)
+        if dataset == '247tokyo1k':
+            qvecs = vecs
+        else:
+            qvecs = extract_vectors(net, qimages, args.image_size, transform, bbxs=bbxs, ms=ms, msp=msp)
         print('>> {}: Evaluating...'.format(dataset))
 
         # convert to numpy
@@ -248,6 +254,10 @@ def main():
         ranks = np.argsort(-scores, axis=0)
         compute_map_and_print(dataset, ranks, cfg['gnd'])
 
+        saveDir = join(args.ftSavePath,dataset,'ft')
+        if not exists(saveDir):
+            os.makedirs(saveDir)
+        uniId = "v-gem_" if args.network_path in PRETRAINED else "w-gem_"
         if Lw is not None:
             # whiten the vectors
             vecs_lw = whitenapply(vecs, Lw['m'], Lw['P'])
@@ -257,9 +267,12 @@ def main():
             scores = np.dot(vecs_lw.T, qvecs_lw)
             ranks = np.argsort(-scores, axis=0)
             compute_map_and_print(dataset + ' + whiten', ranks, cfg['gnd'])
+            np.save(join(saveDir,uniId+"ft_db_w"),np.transpose(vecs_lw))
+            np.save(join(saveDir,uniId+"ft_q_w"),np.transpose(qvecs_lw))
 
         print('>> {}: elapsed time: {}'.format(dataset, htime(time.time()-start)))
-
+        np.save(join(saveDir,uniId+"ft_db"),np.transpose(vecs))
+        np.save(join(saveDir,uniId+"ft_q"),np.transpose(qvecs))
 
 if __name__ == '__main__':
     main()
